@@ -1,0 +1,131 @@
+#include <ESP8266WiFi.h>
+#include <WiFiClientSecure.h>
+
+int trigPin = 4; // D2 pin of ESP8266
+int echoPin = 2; // D4 pin of ESP8266
+
+int maximumRange = 200; // Maximum range needed
+int minimumRange = 0; // Minimum range needed
+long duration, distance; // Duration used to calculate distance
+
+const char* ssid = "Ermis";
+const char* password = "Ermis#142";
+
+const char* host = "hooks.slack.com";
+const int httpsPort = 443;
+
+int prevStatus = 0; // closed
+int curStatus = 0;
+// Use web browser to view and copy
+// SHA1 fingerprint of the certificate
+const char* fingerprint = "AC 95 5A 58 B8 4E 0B CD B3 97 D2 88 68 F5 CA C1 0A 81 E3 6E";
+
+void checkDistance() {
+ digitalWrite(trigPin, LOW); 
+ delayMicroseconds(2); 
+
+ digitalWrite(trigPin, HIGH);
+ delayMicroseconds(10); 
+ 
+ digitalWrite(trigPin, LOW);
+ duration = pulseIn(echoPin, HIGH);
+ 
+ //Calculate the distance (in cm) based on the speed of sound.
+ distance = duration/58.2;
+}
+
+void setup() {
+  Serial.begin(115200);
+  Serial.println();
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+ 
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+  //WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("");
+  Serial.println("WiFi connected");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+}
+
+void requestFunc(String myStr) {
+  // Use WiFiClientSecure class to create TLS connection
+  WiFiClientSecure client;
+  Serial.print("connecting to ");
+  Serial.println(host);
+  if (!client.connect(host, httpsPort)) {
+    Serial.println("connection failed");
+    return;
+  }
+
+  if (client.verify(fingerprint, host)) {
+    Serial.println("certificate matches");
+  } else {
+    Serial.println("certificate doesn't match");
+  }
+
+  String url = "/services/T2NUR9UG4/B81FT2HPG/4dDvXyjNA10F0PfaJcTrU4HF";
+  Serial.print("requesting URL: ");
+  Serial.println(url);
+  String msgtoSend = "{\"text\": \""+myStr+"\"}";
+  
+  String sendReq = String("POST ") + url + " HTTP/1.1\r\n" +
+               "Host: " + host + "\r\n" +
+               "User-Agent: BuildFailureDetectorESP8266\r\n" +
+               "Connection: close\r\n" +
+               "Content-Type: application/json\r\n" +
+               "Content-Length: " + msgtoSend.length() + "\r\n"
+               "\r\n" + msgtoSend +
+               "\r\n";
+               ;
+  client.print(sendReq);
+Serial.println(sendReq);
+  Serial.println("request sent");
+  while (client.connected()) {
+    String line = client.readStringUntil('\n');
+    Serial.println(line);
+    if (line == "\r") {
+      Serial.println("headers received");
+      break;
+    }
+  }
+  String line = client.readStringUntil('\n');
+  Serial.println(line);
+  if (line.startsWith("{\"state\":\"success\"")) {
+    //Serial.println("esp8266/Arduino CI successfull!");
+  } else {
+    //Serial.println("esp8266/Arduino CI has failed");
+  }
+  //Serial.println("reply was:");
+  //Serial.println("==========");
+  //Serial.println(line);
+  //Serial.println("==========");
+  //Serial.println("closing connection");
+}
+
+void loop() {
+  checkDistance();
+  Serial.print("The distance is:");
+  Serial.println(distance);
+  if( (distance>0) && (distance < 13) ) {
+    // close
+    curStatus=0;
+  }else {
+    // open
+    curStatus=1;
+  }
+  if( (curStatus==0) && (prevStatus==1) ) {
+    requestFunc("The door is close.");
+    prevStatus=curStatus;
+  }else if( (curStatus==1) && (prevStatus==0) ) {
+    requestFunc("The door is open.");
+    prevStatus=curStatus;
+  }
+  delay(1000);
+}
