@@ -1,5 +1,9 @@
 #include <ESP8266WiFi.h>
 #include <WiFiClientSecure.h>
+#include <dht.h>
+
+dht DHT;
+#define DHT11_PIN 7
 
 int trigPin = 4; // D2 pin of ESP8266
 int echoPin = 2; // D4 pin of ESP8266
@@ -146,6 +150,11 @@ void loop() {
     // open
     curStatus=1;
   }
+  int chk = DHT.read11(DHT11_PIN);
+  Serial.print("Temperature = ");
+  Serial.println(DHT.temperature);
+  Serial.print("Humidity = ");
+  Serial.println(DHT.humidity);
   delay(3000);
   getMotionStatus();
 
