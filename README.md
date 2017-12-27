@@ -8,12 +8,12 @@ First of all, you need arduino IDE. Arduino IDE can be downloaded from https://w
 
 Secondly, you need to install all the necessary libraries. You can download them from our Libraries folder. You have to install both folders by simple copy and paste those folders to your Arduino/libraries local folder.
 
-#System Αrchitecture
+# System Αrchitecture
 The system architecture that was installed at our office is the following.
-![Alt Text](https://github.com/ieeesbuoi/officeAlert/systemarchitecture.png)
+![Alt Text](https://github.com/ieeesbuoi/officeAlert/connectionDiagram.png)
 We have used UTP cable to extend any cables and connect the necessary power to the ESP8266.
 
-#Contact
+# Contact
 Feel free to contact anyone in our team who has contributed or send an email at ieeesbuoi@gmail.com for more information or bugs found.
 
 Website: ieeesb.uoi.gr
